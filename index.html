@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Banki">
+  <meta name="format-detection" content="telephone=no">
+  <title>Banki – warunki promocji</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --ok: #16a34a;
+      --ok-bg: #dcfce7;
+      --warn: #b45309;
+      --warn-bg: #fef3c7;
+      --bad: #dc2626;
+      --bad-bg: #fee2e2;
+      --accent: #2563eb;
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f17;
+        --card: #161b26;
+        --text: #f3f4f6;
+        --muted: #9ca3af;
+        --line: #273041;
+        --ok: #4ade80;
+        --ok-bg: #12301f;
+        --warn: #fbbf24;
+        --warn-bg: #3a2c0c;
+        --bad: #f87171;
+        --bad-bg: #3b1515;
+        --accent: #60a5fa;
+      }
+    }
+    * { box-sizing: border-box; }
+    html {
+      -webkit-text-size-adjust: 100%;
+      background: var(--bg);
+      color-scheme: light dark;
+      /* Bez opóźnienia i zoomu przy podwójnym stuknięciu (np. szybkie +/+). */
+      touch-action: manipulation;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.4 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button, summary, .tile, label.item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .wrap {
+      max-width: 560px;
+      margin: 0 auto;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right))
+        max(32px, env(safe-area-inset-bottom))
+        max(16px, env(safe-area-inset-left));
+    }
+    .hint {
+      background: var(--card); border-left: 4px solid var(--accent);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 14px;
+    }
+    .hint p { margin: 0 0 8px; }
+    .hint .btn { padding: 6px 10px; }
+    header { display: flex; align-items: center; gap: 12px; margin: 4px 0 16px; }
+    header h1 { font-size: 24px; margin: 0; flex: 1; }
+    .back {
+      border: 0; background: var(--card); color: var(--text);
+      width: 44px; height: 44px; border-radius: 12px; font-size: 26px; cursor: pointer; padding: 0;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+    a { color: var(--accent); }
+
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .tile {
+      display: block; text-decoration: none; color: inherit;
+      background: var(--card); border-radius: var(--radius); padding: 16px;
+      border-top: 6px solid var(--brand, var(--accent));
+      box-shadow: 0 1px 2px rgb(0 0 0 / .06);
+    }
+    .tile h2 { margin: 0 0 2px; font-size: 18px; }
+    .tile .promo { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .tile .status { font-size: 14px; margin-top: 8px; }
+
+    .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; background: var(--ok); border-radius: 99px; transition: width .2s; }
+
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card h3 { margin: 0 0 8px; font-size: 16px; }
+    .summary { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .summary strong { font-size: 22px; }
+
+    .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    input[type=month] {
+      font: inherit; font-size: 16px; /* <16px = automatyczny zoom na iOS */
+      color: var(--text); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+      min-width: 10em; min-height: 44px;
+    }
+
+    details.month { background: var(--card); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+    details.month.current { outline: 2px solid var(--accent); }
+    details.month > summary {
+      list-style: none; cursor: pointer; padding: 14px 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    details.month > summary::-webkit-details-marker { display: none; }
+    details.month > summary .title { flex: 1; font-weight: 600; }
+    details.month > summary .title small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+    details.month .body { padding: 0 16px 12px; }
+
+    .badge { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 99px; white-space: nowrap; }
+    .badge.ok { color: var(--ok); background: var(--ok-bg); }
+    .badge.warn { color: var(--warn); background: var(--warn-bg); }
+    .badge.bad { color: var(--bad); background: var(--bad-bg); }
+    .badge.idle { color: var(--muted); background: var(--bg); }
+
+    .item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-top: 1px solid var(--line);
+    }
+    .item:first-child { border-top: 0; }
+    .item .label { flex: 1; }
+    .item .label small { display: block; color: var(--muted); font-size: 13px; }
+    .item.done .label { color: var(--muted); }
+    label.item { cursor: pointer; }
+    .item input[type=checkbox] {
+      appearance: none; -webkit-appearance: none; margin: 0; flex: none;
+      width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--line);
+      display: grid; place-items: center; background: var(--bg); cursor: pointer;
+    }
+    .item input[type=checkbox]:checked {
+      border-color: var(--ok);
+      background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat;
+    }
+
+    .counter { display: flex; align-items: center; gap: 6px; flex: none; }
+    .counter button {
+      width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line);
+      background: var(--bg); color: var(--text); font-size: 22px; cursor: pointer; padding: 0;
+    }
+    .counter button:active { background: var(--line); }
+    .counter output { min-width: 44px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .counter output.ok { color: var(--ok); }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .btn {
+      font: inherit; font-size: 14px; padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--card); color: var(--text);
+    }
+    .btn.danger { color: var(--bad); }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Konfiguracja banków. Kolejny bank = kolejny obiekt w tablicy.
+  //   months       – ile miesięcy trwa promocja
+  //   startOffset  – 1 = pierwszy miesiąc promocji to miesiąc po miesiącu wniosku
+  //   monthly      – warunki do spełnienia w każdym miesiącu
+  //                  type 'check' = checkbox, type 'count' = licznik do `target`
+  //   once         – warunki jednorazowe
+  // ---------------------------------------------------------------------------
+  const BANKS = [
+    {
+      id: 'erste',
+      name: 'Erste Bank',
+      promo: 'Konto Smart – do 700 zł',
+      color: '#2870ed',
+      url: 'https://www.erste.pl/ws-konto-smart-all/',
+      startLabel: 'Miesiąc złożenia wniosku',
+      months: 3,
+      startOffset: 1,
+      monthlyBonus: 200,
+      finalBonus: 100,
+      finalBonusLabel: 'za spełnienie warunków we wszystkich 3 miesiącach',
+      once: [
+        { id: 'wniosek', label: 'Wniosek i umowa konta z kartą debetową i Erste online', note: 'do 30.11.2026' },
+        { id: 'zgody', label: 'Zgoda na udział w promocji i akceptacja regulaminu' },
+      ],
+      monthly: [
+        { id: 'wplyw', type: 'check', label: 'Wpływ min. 1000 zł' },
+        { id: 'platnosci', type: 'count', target: 7, label: 'Płatności kartą lub BLIKIEM' },
+        { id: 'cel', type: 'check', label: 'Cel w Moje Cele', note: 'min. 1 cel, otwarty do końca promocji' },
+        { id: 'login', type: 'check', label: 'Logowanie do aplikacji mobilnej' },
+      ],
+    },
+  ];
+
+  // --- Stan w localStorage ---------------------------------------------------
+  const STORAGE_KEY = 'banki:v1';
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { return {}; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch { alert('Nie udało się zapisać stanu w przeglądarce.'); }
+  }
+  let state = loadState();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  function bankState(id) {
+    return (state[id] ||= { start: '', once: {}, months: {} });
+  }
+
+  // --- Miesiące --------------------------------------------------------------
+  const pad = n => String(n).padStart(2, '0');
+  const currentKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+  function addMonths(key, n) {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+  }
+  function monthName(key) {
+    const [y, m] = key.split('-').map(Number);
+    const s = new Date(y, m - 1, 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  function promoMonths(bank) {
+    const bs = bankState(bank.id);
+    if (!bs.start) return [];
+    return Array.from({ length: bank.months }, (_, i) => addMonths(bs.start, bank.startOffset + i));
+  }
+
+  // --- Logika warunków -------------------------------------------------------
+  function itemDone(item, val) {
+    return item.type === 'count' ? (val || 0) >= item.target : !!val;
+  }
+  function monthProgress(bank, key) {
+    const vals = bankState(bank.id).months[key] || {};
+    const done = bank.monthly.filter(it => itemDone(it, vals[it.id])).length;
+    return { done, total: bank.monthly.length, complete: done === bank.monthly.length };
+  }
+  function monthStatus(bank, key) {
+    const p = monthProgress(bank, key);
+    const now = currentKey();
+    if (p.complete) return { cls: 'ok', text: 'Spełnione' };
+    if (key < now) return { cls: 'bad', text: 'Niespełnione' };
+    if (key > now) return { cls: 'idle', text: 'Wkrótce' };
+    return { cls: 'warn', text: `${p.done}/${p.total}` };
+  }
+  function bonusInfo(bank) {
+    const months = promoMonths(bank);
+    const completed = months.filter(k => monthProgress(bank, k).complete).length;
+    const max = bank.months * bank.monthlyBonus + (bank.finalBonus || 0);
+    let earned = completed * bank.monthlyBonus;
+    if (months.length && completed === months.length) earned += bank.finalBonus || 0;
+    return { earned, max, completed };
+  }
+
+  // --- iPhone ----------------------------------------------------------------
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  const HINT_KEY = 'banki:hint-hidden';
+  function hintHidden() {
+    try { return localStorage.getItem(HINT_KEY) === '1'; } catch { return false; }
+  }
+
+  // --- Widoki ----------------------------------------------------------------
+  const app = document.getElementById('app');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function renderHome() {
+    document.title = 'Banki';
+    const tiles = BANKS.map(bank => {
+      const bs = bankState(bank.id);
+      const months = promoMonths(bank);
+      const now = currentKey();
+      const { earned, max } = bonusInfo(bank);
+      let status;
+      if (!bs.start) {
+        status = `<span class="muted">Ustaw miesiąc wniosku</span>`;
+      } else if (months.includes(now)) {
+        const p = monthProgress(bank, now);
+        status = `${esc(monthName(now))}: <b>${p.done}/${p.total}</b>`;
+      } else if (now < months[0]) {
+        status = `<span class="muted">Start: ${esc(monthName(months[0]))}</span>`;
+      } else {
+        status = `<span class="muted">Promocja zakończona</span>`;
+      }
+      return `
+        <a class="tile" href="#/${bank.id}" style="--brand:${bank.color}">
+          <h2>${esc(bank.name)}</h2>
+          <div class="promo">${esc(bank.promo)}</div>
+          <div class="bar"><i style="width:${max ? (earned / max) * 100 : 0}%"></i></div>
+          <div class="status">${earned} / ${max} zł</div>
+          <div class="status">${status}</div>
+        </a>`;
+    }).join('');
+
+    const hint = isIOS && !isStandalone && !hintHidden() ? `
+      <div class="hint">
+        <p><b>Dodaj do ekranu początkowego</b>: Udostępnij (kwadrat ze strzałką) → „Do ekranu początkowego”, i otwieraj stronę tylko z ikony.</p>
+        <p class="muted">Safari kasuje dane stron nieotwieranych przez 7 dni. Aplikacja z ekranu początkowego ma osobne dane – to, co odhaczysz w Safari, nie przeniesie się do niej.</p>
+        <button class="btn" data-action="hide-hint">Rozumiem</button>
+      </div>` : '';
+
+    app.innerHTML = `
+      <header><h1>Banki</h1></header>
+      ${hint}
+      <div class="tiles">${tiles}</div>
+      <div class="actions">
+        <button class="btn" data-action="export">Eksportuj kopię</button>
+        <button class="btn" data-action="import">Importuj kopię</button>
+      </div>
+      <p class="muted small">Stan zapisuje się tylko w tej przeglądarce (localStorage).</p>`;
+  }
+
+  function itemHtml(item, val, scope) {
+    const done = itemDone(item, val);
+    const note = item.note ? `<small>${esc(item.note)}</small>` : '';
+    if (item.type === 'count') {
+      return `
+        <div class="item ${done ? 'done' : ''}">
+          <span class="label">${esc(item.label)}<small>min. ${item.target}${item.note ? ' · ' + esc(item.note) : ''}</small></span>
+          <span class="counter">
+            <button data-action="dec" data-scope="${scope}" data-item="${item.id}" aria-label="Mniej">−</button>
+            <output class="${done ? 'ok' : ''}">${val || 0}/${item.target}</output>
+            <button data-action="inc" data-scope="${scope}" data-item="${item.id}" aria-label="Więcej">+</button>
+          </span>
+        </div>`;
+    }
+    return `
+      <label class="item ${done ? 'done' : ''}">
+        <input type="checkbox" data-action="toggle" data-scope="${scope}" data-item="${item.id}" ${val ? 'checked' : ''}>
+        <span class="label">${esc(item.label)}${note}</span>
+      </label>`;
+  }
+
+  function renderBank(bank) {
+    document.title = `${bank.name} – Banki`;
+    const bs = bankState(bank.id);
+    const months = promoMonths(bank);
+    const now = currentKey();
+    const { earned, max, completed } = bonusInfo(bank);
+    // Domyślnie rozwinięty bieżący miesiąc, a gdy go nie ma – pierwszy niespełniony.
+    const openKey = months.includes(now) ? now : months.find(k => !monthProgress(bank, k).complete);
+
+    const monthCards = months.map((key, i) => {
+      const vals = bs.months[key] || {};
+      const st = monthStatus(bank, key);
+      return `
+        <details class="month ${key === now ? 'current' : ''}" ${key === openKey ? 'open' : ''}>
+          <summary>
+            <span class="title">${esc(monthName(key))}<small>Miesiąc ${i + 1} · premia ${bank.monthlyBonus} zł</small></span>
+            <span class="badge ${st.cls}">${esc(st.text)}</span>
+          </summary>
+          <div class="body">
+            ${bank.monthly.map(it => itemHtml(it, vals[it.id], key)).join('')}
+          </div>
+        </details>`;
+    }).join('');
+
+    app.innerHTML = `
+      <header>
+        <button class="back" data-action="home" aria-label="Wróć">‹</button>
+        <h1>${esc(bank.name)}</h1>
+      </header>
+
+      <div class="card">
+        <div class="summary">
+          <span class="muted">${esc(bank.promo)}</span>
+          <strong>${earned} / ${max} zł</strong>
+        </div>
+        <div class="bar"><i style="width:${(earned / max) * 100}%"></i></div>
+        <p class="muted small" style="margin:8px 0 0">
+          Spełnione miesiące: ${completed}/${bank.months}.
+          ${bank.finalBonus ? `Bonus +${bank.finalBonus} zł ${esc(bank.finalBonusLabel)}.` : ''}
+          <a href="${esc(bank.url)}" target="_blank" rel="noopener">Strona promocji</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label for="start">${esc(bank.startLabel)}</label>
+          <input type="month" id="start" data-action="start" value="${esc(bs.start)}">
+        </div>
+        ${bs.start ? '' : '<p class="muted small" style="margin:8px 0 0">Ustaw miesiąc, aby zobaczyć miesiące promocji.</p>'}
+      </div>
+
+      ${bank.once.length ? `
+      <div class="card">
+        <h3>Warunki jednorazowe</h3>
+        ${bank.once.map(it => itemHtml(it, bs.once[it.id], 'once')).join('')}
+      </div>` : ''}
+
+      ${monthCards}
+
+      <div class="actions">
+        <button class="btn danger" data-action="reset">Wyczyść dane banku</button>
+      </div>`;
+  }
+
+  function render() {
+    const id = location.hash.replace(/^#\/?/, '');
+    const bank = BANKS.find(b => b.id === id);
+    bank ? renderBank(bank) : renderHome();
+  }
+
+  // --- Zdarzenia -------------------------------------------------------------
+  function currentBank() {
+    return BANKS.find(b => b.id === location.hash.replace(/^#\/?/, ''));
+  }
+  function valuesFor(bs, scope) {
+    if (scope === 'once') return bs.once;
+    return (bs.months[scope] ||= {});
+  }
+
+  app.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    if (action === 'home') { location.hash = ''; return; }
+    if (action === 'export') return exportData();
+    if (action === 'hide-hint') {
+      try { localStorage.setItem(HINT_KEY, '1'); } catch {}
+      return render();
+    }
+    if (action === 'import') return document.getElementById('importFile').click();
+
+    const bank = currentBank();
+    if (!bank) return;
+    const bs = bankState(bank.id);
+
+    if (action === 'inc' || action === 'dec') {
+      const vals = valuesFor(bs, el.dataset.scope);
+      const id = el.dataset.item;
+      vals[id] = Math.max(0, (vals[id] || 0) + (action === 'inc' ? 1 : -1));
+      saveState(); keepOpenAndRender();
+    } else if (action === 'reset') {
+      if (confirm(`Wyczyścić wszystkie dane dla ${bank.name}?`)) {
+        delete state[bank.id]; saveState(); render();
+      }
+    }
+  });
+
+  app.addEventListener('change', e => {
+    const el = e.target;
+    const bank = currentBank();
+    if (!bank) return;
+    const bs = bankState(bank.id);
+    if (el.dataset.action === 'toggle') {
+      valuesFor(bs, el.dataset.scope)[el.dataset.item] = el.checked;
+      saveState(); keepOpenAndRender();
+    } else if (el.dataset.action === 'start') {
+      bs.start = el.value; saveState(); render();
+    }
+  });
+
+  // Zachowuje rozwinięte/zwinięte miesiące i pozycję przewijania przy przerysowaniu.
+  function keepOpenAndRender() {
+    const open = [...app.querySelectorAll('details.month')].map(d => d.open);
+    const y = window.scrollY;
+    render();
+    app.querySelectorAll('details.month').forEach((d, i) => { if (i in open) d.open = open[i]; });
+    window.scrollTo(0, y);
+  }
+
+  async function exportData() {
+    const name = `banki-${new Date().toISOString().slice(0, 10)}.json`;
+    const file = new File([JSON.stringify(state, null, 2)], name, { type: 'application/json' });
+    // Na telefonie arkusz udostępniania („Zachowaj w Plikach”) – zwykłe pobieranie
+    // w aplikacji z ekranu początkowego na iOS bywa zawodne.
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    if (touch && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  document.getElementById('importFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (typeof data !== 'object' || !data) throw new Error();
+      if (!confirm('Zastąpić obecne dane danymi z pliku?')) return;
+      state = data; saveState(); render();
+    } catch {
+      alert('Niepoprawny plik kopii.');
+    }
+  });
+
+  window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
+  // Odśwież po powrocie do aplikacji (np. gdy zmienił się miesiąc), bez gubienia przewinięcia.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) keepOpenAndRender(); });
+  render();
+
+  // Działanie offline (np. słaby zasięg przy otwieraniu z ekranu początkowego).
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+  </script>
+</body>
+</html>
