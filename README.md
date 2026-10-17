@@ -1,7 +1,14 @@
 # bank-promo-tracker
 
-Prosta strona mobilna do odhaczania miesięcznych warunków promocji bankowych.
+Strona mobilna (w stylu iOS) do odhaczania warunków promocji bankowych.
 Stan trzymany jest w `localStorage` przeglądarki (bez backendu).
+
+| Plik | Co zawiera |
+|---|---|
+| `banks.js` | konfiguracja banków i warunków promocji |
+| `app.js` | logika i widoki |
+| `styles.css` | wygląd |
+| `sw.js` | działanie offline |
 
 ## Hosting (GitHub Pages)
 
@@ -22,11 +29,11 @@ Safari → Udostępnij → „Do ekranu początkowego” i otwieraj stronę tylk
 
 ## Dodanie banku
 
-Dopisz obiekt do tablicy `BANKS` w `index.html`. Są dwa typy promocji:
+Dopisz obiekt do tablicy `BANKS` w `banks.js`. Są dwa typy promocji:
 
 - `kind: 'monthly'` – te same warunki co miesiąc (przykład poniżej, oraz Erste),
 - `kind: 'plan'` – jednorazowy plan krok po kroku z terminami liczonymi
-  z miesiąca umowy i wariantami (wzór: Pekao w `index.html`).
+  z miesiąca umowy i wariantami (wzór: Pekao w `banks.js`).
 
 ```js
 {
