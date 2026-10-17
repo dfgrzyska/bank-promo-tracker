@@ -22,11 +22,16 @@ Safari → Udostępnij → „Do ekranu początkowego” i otwieraj stronę tylk
 
 ## Dodanie banku
 
-Dopisz obiekt do tablicy `BANKS` w `index.html`:
+Dopisz obiekt do tablicy `BANKS` w `index.html`. Są dwa typy promocji:
+
+- `kind: 'monthly'` – te same warunki co miesiąc (przykład poniżej, oraz Erste),
+- `kind: 'plan'` – jednorazowy plan krok po kroku z terminami liczonymi
+  z miesiąca umowy i wariantami (wzór: Pekao w `index.html`).
 
 ```js
 {
   id: 'mbank',
+  kind: 'monthly',
   name: 'mBank',
   promo: 'Opis promocji',
   color: '#c8102e',

@@ -159,6 +159,51 @@
     .counter output { min-width: 44px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
     .counter output.ok { color: var(--ok); }
 
+    .item .badge { flex: none; }
+    .tag {
+      display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px;
+      background: var(--bg); color: var(--muted); vertical-align: 1px;
+    }
+    .late { color: var(--bad); font-weight: 600; }
+    .note {
+      margin: 0 0 4px; padding: 10px 12px; border-radius: 10px; font-size: 14px;
+      background: var(--warn-bg); color: var(--text);
+    }
+
+    .item.amount, .item.variant { flex-direction: column; align-items: stretch; gap: 8px; }
+    .item.amount .row { display: flex; align-items: center; gap: 12px; }
+    .item.amount input {
+      font: inherit; font-size: 16px; width: 8em; color: var(--text); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 44px;
+    }
+    .item.amount .sum { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .item.amount .sum.ok { color: var(--ok); }
+
+    .choices { display: grid; gap: 8px; }
+    .choice {
+      font: inherit; text-align: left; cursor: pointer; padding: 10px 12px; border-radius: 12px;
+      border: 2px solid var(--line); background: var(--bg); color: var(--text);
+    }
+    .choice small { display: block; color: var(--muted); font-size: 13px; }
+    .choice.selected { border-color: var(--ok); background: var(--ok-bg); }
+
+    select {
+      font: inherit; font-size: 16px; color: var(--text); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 44px; max-width: 55%;
+    }
+
+    ul.dates, ul.rules { margin: 0; padding: 0; list-style: none; }
+    ul.dates li {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px;
+    }
+    ul.dates li:first-child { border-top: 0; }
+    ul.dates li b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    ul.dates li.past { color: var(--muted); text-decoration: line-through; }
+    ul.rules li { padding: 6px 0 6px 14px; position: relative; font-size: 14px; }
+    ul.rules li::before { content: "•"; position: absolute; left: 0; color: var(--muted); }
+    ul.rules + ul.rules { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+
     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
     .btn {
       font: inherit; font-size: 14px; padding: 10px 14px; border-radius: 10px; cursor: pointer;
@@ -174,15 +219,26 @@
   <script>
   // ---------------------------------------------------------------------------
   // Konfiguracja banków. Kolejny bank = kolejny obiekt w tablicy.
+  //
+  // kind: 'monthly' – te same warunki w kolejnych miesiącach (np. Erste)
   //   months       – ile miesięcy trwa promocja
   //   startOffset  – 1 = pierwszy miesiąc promocji to miesiąc po miesiącu wniosku
   //   monthly      – warunki do spełnienia w każdym miesiącu
-  //                  type 'check' = checkbox, type 'count' = licznik do `target`
   //   once         – warunki jednorazowe
+  //
+  // kind: 'plan' – jednorazowy plan krok po kroku z terminami (np. Pekao)
+  //   schedule     – terminy zależne od miesiąca umowy; w tekstach {klucz} → data
+  //   variants     – opcjonalne warianty; element z `variant` widać tylko w swoim
+  //   sections     – grupy kroków; `optional: true` nie wlicza się do postępu
+  //
+  // Typy elementów: 'check' (domyślny), 'count' (licznik do `target`),
+  // 'amount' (kwota do `target`), 'variant' (wybór wariantu).
+  // `deadline` to klucz z harmonogramu albo data RRRR-MM-DD; `soft` = „ok.”.
   // ---------------------------------------------------------------------------
   const BANKS = [
     {
       id: 'erste',
+      kind: 'monthly',
       name: 'Erste Bank',
       promo: 'Konto Smart – do 700 zł',
       color: '#2870ed',
@@ -204,6 +260,132 @@
         { id: 'login', type: 'check', label: 'Logowanie do aplikacji mobilnej' },
       ],
     },
+    {
+      id: 'pekao',
+      kind: 'plan',
+      name: 'Pekao',
+      promo: 'Karta z Żubrem – 22 000 mil',
+      color: '#d4001a',
+      url: 'https://www.pekao.com.pl/karta-z-zubrem/',
+      contractLabel: 'Miesiąc zawarcia umowy o kartę',
+      // Terminy 1000 zł i mil – §6 regulaminu „Ekstra mile na start – edycja II”.
+      schedule: {
+        '2026-10': { label: 'Październik 2026', signBy: '2026-10-31', spend: '2026-11-30', milesFrom: '2026-12-15', milesTo: '2026-12-31' },
+        '2026-11': { label: 'Listopad 2026', signBy: '2026-11-30', spend: '2026-12-31', milesFrom: '2027-01-15', milesTo: '2027-01-31' },
+        '2026-12': { label: 'Grudzień 2026', signBy: '2026-12-31', spend: '2027-01-31', milesFrom: '2027-02-15', milesTo: '2027-02-28' },
+        '2027-01': { label: '1–20 stycznia 2027', signBy: '2027-01-20', spend: '2027-02-28', milesFrom: '2027-03-15', milesTo: '2027-03-31' },
+      },
+      // Terminy orientacyjne z planu: wniosek tydzień przed umową, KŚP kilka dni
+      // przed oknem naliczenia mil, zamknięcie do końca miesiąca po wpływie mil.
+      derived: d => ({
+        applyBy: addDays(d.signBy, -7),
+        kspBy: addDays(d.milesFrom, -5),
+        closeBy: endOfMonth(addDays(d.milesTo, 1)),
+      }),
+      variants: {
+        A: { label: 'Tak – wariant A', note: 'Najpierw karta, Konto Świat Premium (KŚP) później.' },
+        B: { label: 'Nie – wariant B', note: 'Najpierw KŚP (daje dostęp do Pekao24/PeoPay), potem karta.' },
+      },
+      keyDates: [
+        { label: 'Wniosek o kartę z kodem MILE', date: 'applyBy', soft: true },
+        { label: 'Podpisanie umowy o kartę', date: 'signBy' },
+        { label: 'Karta w Miles & More + min. 1000 zł', date: 'spend' },
+        { label: 'KŚP otwarte (wariant A)', date: 'kspBy', soft: true, variant: 'A' },
+        { label: 'Wpływ 20 000 mil', date: 'milesFrom', to: 'milesTo' },
+        { label: 'Spłata do zera, zamknięcie karty i KŚP', date: 'closeBy', soft: true },
+      ],
+      rules: [
+        'Nagroda: 10 000 mil, albo 20 000 mil, jeśli w dniu naliczenia mil masz Konto Świat Premium (może być otwarte po karcie).',
+        'Dodatkowo 2 000 mil powitalnych za pierwszą transakcję kartą już dołączoną do Miles & More.',
+        'Warunek: karta dołączona do M&M i transakcje bezgotówkowe na min. 1000 zł w miesiącu umowy lub w następnym.',
+        'Kto może: 18+, konsument, obywatelstwo PL i zamieszkanie w PL, dostęp do Pekao24/PeoPay, brak Karty z Żubrem od 1.01.2025 do 30.09.2026, brak Bankowości Prywatnej.',
+        'Nie liczą się: kasyna, gry losowe, bukmacherka, loterie, zasilenia portfeli (Revolut, Skrill), przekazy pieniężne, transakcje anulowane/zwrócone, bankomaty.',
+        'Utrata nagrody: wypowiedzenie lub odstąpienie od umowy o kartę albo wycofanie zgody na przetwarzanie danych przed otrzymaniem mil.',
+        'Wyklucza się z „Obrączką w nagrodę” (kod OBRĄCZKA) – wybierz MILE.',
+      ],
+      links: [
+        { label: 'Regulamin „Ekstra mile na start – edycja II”', url: 'https://www.pekao.com.pl/dam/ROOT-EXTERNAL/DOCS/Regulamin_promocji_Ekstra_mile_na_start_edycja_II.pdf' },
+        { label: 'Regulamin „Zbieram mile z Kartą Kredytową z Żubrem”', url: 'https://www.pekao.com.pl/dam/jcr:d320598c-f61f-47d7-bdbb-6e9d3a175090/Regulamin_Programu_Zbieram_mile_z_Karta_Kredytowa_z_Zubrem.2026-07-01-11-36-18.pdf' },
+        { label: 'Regulamin „Otwórz konto online i ruszaj po więcej – edycja IV”', url: 'https://www.pekao.com.pl/dam/ROOT-EXTERNAL/DOCS/Regulamin_promocji_Otworz_konto_online_i_ruszaj_po_wiecej.pdf' },
+        { label: 'Karta z Żubrem – pakiety i opłaty', url: 'https://www.pekao.com.pl/karta-z-zubrem/' },
+        { label: 'Okazja na Pepper.pl', url: 'https://www.pepper.pl/promocje/do-22000-mil-w-programe-miles-more-za-wyrobienie-karty-kredytowej-w-banku-pekao-1365502' },
+        { label: 'Moneteo: Konto Świat Premium', url: 'https://moneteo.com/analizy/konto-swiat-premium-bank-pekao-sa' },
+      ],
+      sections: [
+        {
+          id: 'start', title: 'Krok 0 – warunki i wariant',
+          items: [
+            { id: 'nozubr', label: 'Brak Karty Kredytowej z Żubrem od 1.01.2025 do 30.09.2026' },
+            { id: 'nobp', label: 'Brak umowy Bankowości Prywatnej w Pekao' },
+            { id: 'variant', type: 'variant', label: 'Masz już dostęp do Pekao24/PeoPay?' },
+          ],
+        },
+        {
+          id: 'card', title: 'Karta', sub: 'umowa: {contract}',
+          items: [
+            { id: 'ksp-b', variant: 'B', label: 'Otwórz Konto Świat Premium online', note: 'pekao.com.pl/konto-premium lub PeoPay „na selfie”' },
+            { id: 'zgoda', label: 'Zgoda na informacje handlowe drogą elektroniczną', note: 'w Pekao24/PeoPay – warunek promocji' },
+            { id: 'wniosek', label: 'Wniosek o Kartę Kredytową z Żubrem', note: 'żeby zdążyć z decyzją kredytową', deadline: 'applyBy', soft: true },
+            { id: 'kod', label: 'Kod promocyjny: MILE' },
+            { id: 'pakiet', label: 'Pakiet Standard', note: '0 zł bezwarunkowo' },
+            { id: 'oswiadczenia', label: '3 oświadczenia z załącznika do regulaminu zaakceptowane' },
+            { id: 'umowa', label: 'Umowa o kartę podpisana', deadline: 'signBy' },
+            { id: 'aktywacja', label: 'Karta aktywowana' },
+            { id: 'mm', label: 'Karta dołączona do Miles & More – przed pierwszą płatnością', note: 'PeoPay → szczegóły karty → „Zbieraj mile Miles & More” → „Dołącz kartę”' },
+            { id: 'mm-dane', label: 'Konto M&M na dane zgodne z dowodem', note: 'M&M bywa, że prosi o weryfikację przy wymianie mil' },
+            { id: 'mm-ok', label: 'Komunikat o poprawnym dołączeniu karty' },
+            { id: 'pierwsza', label: 'Pierwsza płatność kartą kredytową', note: '2 000 mil powitalnych w ok. 5 dni roboczych od zaksięgowania' },
+            { id: 'powitalne', label: 'Wpłynęło 2 000 mil powitalnych', note: 'sprawdź w aplikacji Miles & More' },
+          ],
+        },
+        {
+          id: 'spend', title: '1000 zł i KŚP', sub: 'do {spend}',
+          items: [
+            { id: 'kwota', type: 'amount', target: 1000, unit: 'zł', label: 'Transakcje bezgotówkowe kartą kredytową', note: 'zapas: ok. 1200 zł · sumę sprawdzaj w historii karty w PeoPay · transakcje z miesiąca umowy też się liczą', deadline: 'spend' },
+            { id: 'stop', label: 'Po ok. 1200 zł przestań używać karty', note: 'mniej transakcji = szybsze zamknięcie' },
+            { id: 'splata', label: 'Spłata całości ręcznie kilka dni przed terminem z wyciągu', note: 'bez odsetek; nie polegaj tylko na autospłacie' },
+            { id: 'ksp-a', variant: 'A', label: 'Otwórz Konto Świat Premium', note: 'KŚP musi istnieć w dniu naliczenia mil (od {milesFrom})', deadline: 'kspBy', soft: true },
+          ],
+        },
+        {
+          id: 'miles', title: 'Wpływ mil', sub: '{milesFrom} – {milesTo}',
+          note: 'Do wpływu mil nie wypowiadaj umowy o kartę, nie odstępuj od niej, nie wycofuj zgód i nie zamykaj KŚP.',
+          items: [
+            { id: 'mile20', label: 'Wpłynęło 20 000 mil na konto Miles & More', note: 'sprawdź w aplikacji M&M, nie tylko w PeoPay; brak do {milesTo} → reklamacja w Pekao', deadline: 'milesTo' },
+          ],
+        },
+        {
+          id: 'close', title: 'Zamykanie – po wpływie mil', sub: 'najpóźniej ok. {closeBy}',
+          note: 'Kolejność: najpierw spłata i wypowiedzenie karty (spłacasz z KŚP), potem zamknięcie KŚP.',
+          items: [
+            { id: 'zero', label: 'Karta spłacona do 0 zł', note: 'poczekaj na zaksięgowanie wszystkich transakcji, sprawdź całe zadłużenie (nie tylko wyciąg); nadpłatę poproś o zwrot' },
+            { id: 'wypowiedz', label: 'Umowa o kartę wypowiedziana', note: 'zapytaj o datę skuteczności i poproś o potwierdzenie zamknięcia', deadline: 'closeBy', soft: true },
+            { id: 'zamknij-ksp', label: 'Konto Świat Premium zamknięte', note: 'najlepiej w tej samej wizycie w oddziale, w ramach 3 darmowych miesięcy', deadline: 'closeBy', soft: true },
+            { id: 'wygasniecie', label: 'Sprawdzona data wygaśnięcia mil na koncie M&M', note: 'bez karty obowiązują zwykłe zasady M&M (zwykle 36 miesięcy)' },
+          ],
+        },
+        {
+          id: 'bonus100', title: 'Opcjonalnie: +100 zł za KŚP', sub: '„Otwórz konto online i ruszaj po więcej – edycja IV”',
+          variant: 'B', optional: true,
+          note: 'Warunek: brak konta w Pekao od 1.09.2024 do 30.09.2026. Wypłata do 15.12.2026.',
+          items: [
+            { id: 'b-konto', label: 'KŚP otwarte online + tego samego dnia logowanie do Pekao24/PeoPay i zgody marketingowe', deadline: '2026-10-31' },
+            { id: 'b-kolejnosc', label: 'Wniosek o kartę kredytową dopiero po otwarciu KŚP', note: 'w dniu przystąpienia nie możesz mieć produktu kredytowego' },
+            { id: 'b-debet', label: '1 płatność kartą debetową do KŚP (nie BLIK)', note: 'w ciągu 14 dni od otwarcia konta' },
+            { id: 'b-100', label: 'Wpłynęło 100 zł', deadline: '2026-12-15' },
+          ],
+        },
+        {
+          id: 'verify', title: 'Do sprawdzenia w banku', sub: 'niepotwierdzone w oficjalnych dokumentach',
+          optional: true,
+          items: [
+            { id: 'v-darmowy', label: 'Darmowy okres KŚP – czy miesiąc otwarcia jest bezpłatny?', note: 'wg źródeł zewnętrznych 3 pełne miesiące, potem ok. 50 zł/mies.' },
+            { id: 'v-okres', label: 'Okres wypowiedzenia umowy o kartę i umowy KŚP' },
+            { id: 'v-online', label: 'Czy kartę można wypowiedzieć online, czy tylko w oddziale / przez infolinię' },
+          ],
+        },
+      ],
+    },
   ];
 
   // --- Stan w localStorage ---------------------------------------------------
@@ -220,13 +402,32 @@
   let state = loadState();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
-  function bankState(id) {
-    return (state[id] ||= { start: '', once: {}, months: {} });
+  function bankState(bank) {
+    if (bank.kind === 'plan') {
+      return (state[bank.id] ||= { contract: Object.keys(bank.schedule)[0], variant: '', items: {} });
+    }
+    return (state[bank.id] ||= { start: '', once: {}, months: {} });
   }
 
-  // --- Miesiące --------------------------------------------------------------
+  // --- Daty ------------------------------------------------------------------
   const pad = n => String(n).padStart(2, '0');
-  const currentKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+  const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+  const todayISO = () => isoDate(new Date());
+  const currentKey = () => todayISO().slice(0, 7);
+  function addDays(iso, n) {
+    const d = parseDate(iso);
+    d.setDate(d.getDate() + n);
+    return isoDate(d);
+  }
+  function endOfMonth(iso) {
+    const d = parseDate(iso);
+    return isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  }
+  function daysUntil(iso) {
+    return Math.round((parseDate(iso) - parseDate(todayISO())) / 86400000);
+  }
+  const fmtDate = iso => iso.split('-').reverse().join('.');
   function addMonths(key, n) {
     const [y, m] = key.split('-').map(Number);
     const d = new Date(y, m - 1 + n, 1);
@@ -237,18 +438,22 @@
     const s = new Date(y, m - 1, 1).toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
+
+  // --- Logika warunków -------------------------------------------------------
+  function itemDone(item, val, bs) {
+    if (item.type === 'count' || item.type === 'amount') return (val || 0) >= item.target;
+    if (item.type === 'variant') return !!(bs && bs.variant);
+    return !!val;
+  }
+
+  // Promocje miesięczne
   function promoMonths(bank) {
-    const bs = bankState(bank.id);
+    const bs = bankState(bank);
     if (!bs.start) return [];
     return Array.from({ length: bank.months }, (_, i) => addMonths(bs.start, bank.startOffset + i));
   }
-
-  // --- Logika warunków -------------------------------------------------------
-  function itemDone(item, val) {
-    return item.type === 'count' ? (val || 0) >= item.target : !!val;
-  }
   function monthProgress(bank, key) {
-    const vals = bankState(bank.id).months[key] || {};
+    const vals = bankState(bank).months[key] || {};
     const done = bank.monthly.filter(it => itemDone(it, vals[it.id])).length;
     return { done, total: bank.monthly.length, complete: done === bank.monthly.length };
   }
@@ -269,6 +474,60 @@
     return { earned, max, completed };
   }
 
+  // Plany krok po kroku
+  function planDates(bank) {
+    const bs = bankState(bank);
+    const row = bank.schedule[bs.contract] || Object.values(bank.schedule)[0];
+    const d = { ...row };
+    Object.assign(d, bank.derived ? bank.derived(d) : {});
+    return d;
+  }
+  function fillText(text, dates, bank) {
+    return String(text).replace(/\{(\w+)\}/g, (m, k) => {
+      if (k === 'contract') return dates.label;
+      return dates[k] ? fmtDate(dates[k]) : m;
+    });
+  }
+  function resolveDeadline(item, dates) {
+    if (!item.deadline) return '';
+    return /^\d{4}-\d{2}-\d{2}$/.test(item.deadline) ? item.deadline : dates[item.deadline] || '';
+  }
+  const visibleFor = (variant, x) => !x.variant || !variant || x.variant === variant;
+  function planSections(bank) {
+    const bs = bankState(bank);
+    return bank.sections
+      .filter(s => visibleFor(bs.variant, s))
+      .map(s => ({ ...s, items: s.items.filter(it => visibleFor(bs.variant, it)) }))
+      .filter(s => s.items.length);
+  }
+  function sectionProgress(bank, section) {
+    const bs = bankState(bank);
+    const done = section.items.filter(it => itemDone(it, bs.items[it.id], bs)).length;
+    return { done, total: section.items.length, complete: done === section.items.length };
+  }
+  function planProgress(bank) {
+    const bs = bankState(bank);
+    const dates = planDates(bank);
+    let done = 0, total = 0, next = null;
+    for (const s of planSections(bank)) {
+      for (const it of s.items) {
+        const ok = itemDone(it, bs.items[it.id], bs);
+        if (!s.optional) { total++; if (ok) done++; }
+        const dl = resolveDeadline(it, dates);
+        if (!ok && dl && !s.optional && (!next || dl < next.date)) next = { item: it, date: dl };
+      }
+    }
+    return { done, total, next };
+  }
+  function deadlineBadge(iso, done) {
+    if (!iso || done) return '';
+    const n = daysUntil(iso);
+    if (n < 0) return '<span class="badge bad">po terminie</span>';
+    if (n === 0) return '<span class="badge warn">dziś</span>';
+    if (n <= 7) return `<span class="badge warn">${n} ${n === 1 ? 'dzień' : 'dni'}</span>`;
+    return '';
+  }
+
   // --- iPhone ----------------------------------------------------------------
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -282,32 +541,51 @@
   // --- Widoki ----------------------------------------------------------------
   const app = document.getElementById('app');
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtNum = n => Number(n || 0).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+
+  function monthlyTile(bank) {
+    const bs = bankState(bank);
+    const months = promoMonths(bank);
+    const now = currentKey();
+    const { earned, max } = bonusInfo(bank);
+    let status;
+    if (!bs.start) {
+      status = `<span class="muted">Ustaw miesiąc wniosku</span>`;
+    } else if (months.includes(now)) {
+      const p = monthProgress(bank, now);
+      status = `${esc(monthName(now))}: <b>${p.done}/${p.total}</b>`;
+    } else if (now < months[0]) {
+      status = `<span class="muted">Start: ${esc(monthName(months[0]))}</span>`;
+    } else {
+      status = `<span class="muted">Promocja zakończona</span>`;
+    }
+    return { pct: max ? earned / max : 0, line: `${earned} / ${max} zł`, status };
+  }
+
+  function planTile(bank) {
+    const { done, total, next } = planProgress(bank);
+    const dates = planDates(bank);
+    let status;
+    if (!next) {
+      status = done === total ? '<span class="muted">Wszystko zrobione</span>' : '';
+    } else {
+      const late = daysUntil(next.date) < 0;
+      status = `<span class="${late ? 'late' : 'muted'}">${next.item.soft ? 'ok. ' : ''}${fmtDate(next.date).slice(0, 5)}:</span> ${esc(fillText(next.item.label, dates))}`;
+    }
+    return { pct: total ? done / total : 0, line: `${done}/${total} kroków`, status };
+  }
 
   function renderHome() {
     document.title = 'Banki';
     const tiles = BANKS.map(bank => {
-      const bs = bankState(bank.id);
-      const months = promoMonths(bank);
-      const now = currentKey();
-      const { earned, max } = bonusInfo(bank);
-      let status;
-      if (!bs.start) {
-        status = `<span class="muted">Ustaw miesiąc wniosku</span>`;
-      } else if (months.includes(now)) {
-        const p = monthProgress(bank, now);
-        status = `${esc(monthName(now))}: <b>${p.done}/${p.total}</b>`;
-      } else if (now < months[0]) {
-        status = `<span class="muted">Start: ${esc(monthName(months[0]))}</span>`;
-      } else {
-        status = `<span class="muted">Promocja zakończona</span>`;
-      }
+      const t = bank.kind === 'plan' ? planTile(bank) : monthlyTile(bank);
       return `
         <a class="tile" href="#/${bank.id}" style="--brand:${bank.color}">
           <h2>${esc(bank.name)}</h2>
           <div class="promo">${esc(bank.promo)}</div>
-          <div class="bar"><i style="width:${max ? (earned / max) * 100 : 0}%"></i></div>
-          <div class="status">${earned} / ${max} zł</div>
-          <div class="status">${status}</div>
+          <div class="bar"><i style="width:${t.pct * 100}%"></i></div>
+          <div class="status">${t.line}</div>
+          <div class="status">${t.status}</div>
         </a>`;
     }).join('');
 
@@ -329,30 +607,77 @@
       <p class="muted small">Stan zapisuje się tylko w tej przeglądarce (localStorage).</p>`;
   }
 
-  function itemHtml(item, val, scope) {
-    const done = itemDone(item, val);
-    const note = item.note ? `<small>${esc(item.note)}</small>` : '';
+  // ctx: { scope, bs, dates } – dates tylko dla planów
+  function itemHtml(item, val, ctx) {
+    const { scope, bs, dates } = ctx;
+    const done = itemDone(item, val, bs);
+    const t = s => dates ? fillText(s, dates) : s;
+    const deadline = dates ? resolveDeadline(item, dates) : '';
+    const meta = [
+      deadline ? `do ${item.soft ? 'ok. ' : ''}${fmtDate(deadline)}` : '',
+      item.note ? t(item.note) : '',
+    ].filter(Boolean).map(esc).join(' · ');
+    const tag = item.variant && !bs?.variant ? ` <span class="tag">wariant ${esc(item.variant)}</span>` : '';
+    const badge = deadlineBadge(deadline, done);
+    const attrs = `data-scope="${scope}" data-item="${item.id}"`;
+
     if (item.type === 'count') {
       return `
         <div class="item ${done ? 'done' : ''}">
-          <span class="label">${esc(item.label)}<small>min. ${item.target}${item.note ? ' · ' + esc(item.note) : ''}</small></span>
+          <span class="label">${esc(item.label)}<small>min. ${item.target}${meta ? ' · ' + meta : ''}</small></span>
           <span class="counter">
-            <button data-action="dec" data-scope="${scope}" data-item="${item.id}" aria-label="Mniej">−</button>
+            <button data-action="dec" ${attrs} aria-label="Mniej">−</button>
             <output class="${done ? 'ok' : ''}">${val || 0}/${item.target}</output>
-            <button data-action="inc" data-scope="${scope}" data-item="${item.id}" aria-label="Więcej">+</button>
+            <button data-action="inc" ${attrs} aria-label="Więcej">+</button>
           </span>
+        </div>`;
+    }
+    if (item.type === 'amount') {
+      const pct = Math.min(100, ((val || 0) / item.target) * 100);
+      return `
+        <div class="item amount ${done ? 'done' : ''}">
+          <div class="row">
+            <span class="label">${esc(item.label)}${tag}<small>${meta}</small></span>
+            ${badge}
+          </div>
+          <div class="row">
+            <input type="text" inputmode="decimal" enterkeyhint="done" placeholder="0" aria-label="Kwota"
+              data-action="amount" ${attrs} value="${val ? esc(String(val).replace('.', ',')) : ''}">
+            <span class="sum ${done ? 'ok' : ''}">${fmtNum(val)} / ${fmtNum(item.target)} ${esc(item.unit || '')}</span>
+          </div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+        </div>`;
+    }
+    if (item.type === 'variant') {
+      const bank = currentBank();
+      const opts = Object.entries(bank.variants).map(([k, v]) => `
+        <button class="choice ${bs.variant === k ? 'selected' : ''}" data-action="variant" data-value="${k}">
+          <b>${esc(v.label)}</b><small>${esc(v.note)}</small>
+        </button>`).join('');
+      return `
+        <div class="item variant ${done ? 'done' : ''}">
+          <span class="label">${esc(item.label)}${bs.variant ? '' : '<small>wybierz, żeby ukryć kroki drugiego wariantu</small>'}</span>
+          <div class="choices">${opts}</div>
         </div>`;
     }
     return `
       <label class="item ${done ? 'done' : ''}">
-        <input type="checkbox" data-action="toggle" data-scope="${scope}" data-item="${item.id}" ${val ? 'checked' : ''}>
-        <span class="label">${esc(item.label)}${note}</span>
+        <input type="checkbox" data-action="toggle" ${attrs} ${val ? 'checked' : ''}>
+        <span class="label">${esc(t(item.label))}${tag}${meta ? `<small>${meta}</small>` : ''}</span>
+        ${badge}
       </label>`;
   }
 
-  function renderBank(bank) {
-    document.title = `${bank.name} – Banki`;
-    const bs = bankState(bank.id);
+  function bankHeader(bank) {
+    return `
+      <header>
+        <button class="back" data-action="home" aria-label="Wróć">‹</button>
+        <h1>${esc(bank.name)}</h1>
+      </header>`;
+  }
+
+  function renderMonthly(bank) {
+    const bs = bankState(bank);
     const months = promoMonths(bank);
     const now = currentKey();
     const { earned, max, completed } = bonusInfo(bank);
@@ -363,22 +688,19 @@
       const vals = bs.months[key] || {};
       const st = monthStatus(bank, key);
       return `
-        <details class="month ${key === now ? 'current' : ''}" ${key === openKey ? 'open' : ''}>
+        <details class="month ${key === now ? 'current' : ''}" data-key="${key}" ${key === openKey ? 'open' : ''}>
           <summary>
             <span class="title">${esc(monthName(key))}<small>Miesiąc ${i + 1} · premia ${bank.monthlyBonus} zł</small></span>
             <span class="badge ${st.cls}">${esc(st.text)}</span>
           </summary>
           <div class="body">
-            ${bank.monthly.map(it => itemHtml(it, vals[it.id], key)).join('')}
+            ${bank.monthly.map(it => itemHtml(it, vals[it.id], { scope: key })).join('')}
           </div>
         </details>`;
     }).join('');
 
     app.innerHTML = `
-      <header>
-        <button class="back" data-action="home" aria-label="Wróć">‹</button>
-        <h1>${esc(bank.name)}</h1>
-      </header>
+      ${bankHeader(bank)}
 
       <div class="card">
         <div class="summary">
@@ -404,7 +726,7 @@
       ${bank.once.length ? `
       <div class="card">
         <h3>Warunki jednorazowe</h3>
-        ${bank.once.map(it => itemHtml(it, bs.once[it.id], 'once')).join('')}
+        ${bank.once.map(it => itemHtml(it, bs.once[it.id], { scope: 'once' })).join('')}
       </div>` : ''}
 
       ${monthCards}
@@ -414,10 +736,85 @@
       </div>`;
   }
 
+  function renderPlan(bank) {
+    const bs = bankState(bank);
+    const dates = planDates(bank);
+    const { done, total } = planProgress(bank);
+    const today = todayISO();
+    const sections = planSections(bank);
+    // Domyślnie rozwinięta pierwsza niedokończona (nieopcjonalna) sekcja.
+    const openId = (sections.find(s => !s.optional && !sectionProgress(bank, s).complete) || {}).id;
+
+    const contractOptions = Object.entries(bank.schedule).map(([k, v]) =>
+      `<option value="${k}" ${bs.contract === k ? 'selected' : ''}>${esc(v.label)}</option>`).join('');
+
+    const keyDates = bank.keyDates
+      .filter(k => visibleFor(bs.variant, k))
+      .map(k => {
+        const from = dates[k.date], to = k.to ? dates[k.to] : '';
+        const past = (to || from) < today;
+        const when = `${k.soft ? 'ok. ' : ''}${fmtDate(from).slice(0, 5)}${to ? '–' + fmtDate(to) : '.' + from.slice(0, 4)}`;
+        return `<li class="${past ? 'past' : ''}"><span>${esc(k.label)}</span><b>${esc(when)}</b></li>`;
+      }).join('');
+
+    const sectionCards = sections.map(s => {
+      const p = sectionProgress(bank, s);
+      const badge = p.complete
+        ? '<span class="badge ok">Gotowe</span>'
+        : `<span class="badge ${s.optional ? 'idle' : 'warn'}">${s.optional && !p.done ? 'opcjonalnie' : `${p.done}/${p.total}`}</span>`;
+      return `
+        <details class="month" data-key="${s.id}" ${s.id === openId ? 'open' : ''}>
+          <summary>
+            <span class="title">${esc(fillText(s.title, dates))}${s.variant && !bs.variant ? ` <span class="tag">wariant ${esc(s.variant)}</span>` : ''}${s.sub ? `<small>${esc(fillText(s.sub, dates))}</small>` : ''}</span>
+            ${badge}
+          </summary>
+          <div class="body">
+            ${s.note ? `<p class="note">${esc(fillText(s.note, dates))}</p>` : ''}
+            ${s.items.map(it => itemHtml(it, bs.items[it.id], { scope: 'plan', bs, dates })).join('')}
+          </div>
+        </details>`;
+    }).join('');
+
+    app.innerHTML = `
+      ${bankHeader(bank)}
+
+      <div class="card">
+        <div class="summary">
+          <span class="muted">${esc(bank.promo)}</span>
+          <strong>${done}/${total}</strong>
+        </div>
+        <div class="bar"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div>
+        <div class="field" style="margin-top:12px">
+          <label for="contract">${esc(bank.contractLabel)}</label>
+          <select id="contract" data-action="contract">${contractOptions}</select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Kluczowe daty</h3>
+        <ul class="dates">${keyDates}</ul>
+      </div>
+
+      ${sectionCards}
+
+      <details class="month" data-key="rules">
+        <summary><span class="title">Zasady i źródła</span></summary>
+        <div class="body">
+          <ul class="rules">${bank.rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+          <ul class="rules">${bank.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('')}</ul>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn danger" data-action="reset">Wyczyść dane banku</button>
+      </div>`;
+  }
+
   function render() {
-    const id = location.hash.replace(/^#\/?/, '');
-    const bank = BANKS.find(b => b.id === id);
-    bank ? renderBank(bank) : renderHome();
+    const bank = currentBank();
+    if (!bank) return renderHome();
+    document.title = `${bank.name} – Banki`;
+    bank.kind === 'plan' ? renderPlan(bank) : renderMonthly(bank);
   }
 
   // --- Zdarzenia -------------------------------------------------------------
@@ -426,7 +823,12 @@
   }
   function valuesFor(bs, scope) {
     if (scope === 'once') return bs.once;
+    if (scope === 'plan') return bs.items;
     return (bs.months[scope] ||= {});
+  }
+  function parseAmount(s) {
+    const n = parseFloat(String(s).replace(/\s/g, '').replace(',', '.'));
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
   }
 
   app.addEventListener('click', e => {
@@ -443,12 +845,15 @@
 
     const bank = currentBank();
     if (!bank) return;
-    const bs = bankState(bank.id);
+    const bs = bankState(bank);
 
     if (action === 'inc' || action === 'dec') {
       const vals = valuesFor(bs, el.dataset.scope);
       const id = el.dataset.item;
       vals[id] = Math.max(0, (vals[id] || 0) + (action === 'inc' ? 1 : -1));
+      saveState(); keepOpenAndRender();
+    } else if (action === 'variant') {
+      bs.variant = bs.variant === el.dataset.value ? '' : el.dataset.value;
       saveState(); keepOpenAndRender();
     } else if (action === 'reset') {
       if (confirm(`Wyczyścić wszystkie dane dla ${bank.name}?`)) {
@@ -461,26 +866,40 @@
     const el = e.target;
     const bank = currentBank();
     if (!bank) return;
-    const bs = bankState(bank.id);
-    if (el.dataset.action === 'toggle') {
+    const bs = bankState(bank);
+    const action = el.dataset.action;
+    if (action === 'toggle') {
       valuesFor(bs, el.dataset.scope)[el.dataset.item] = el.checked;
       saveState(); keepOpenAndRender();
-    } else if (el.dataset.action === 'start') {
+    } else if (action === 'amount') {
+      valuesFor(bs, el.dataset.scope)[el.dataset.item] = parseAmount(el.value);
+      saveState(); keepOpenAndRender();
+    } else if (action === 'start') {
       bs.start = el.value; saveState(); render();
+    } else if (action === 'contract') {
+      bs.contract = el.value; saveState(); keepOpenAndRender();
     }
   });
 
-  // Zachowuje rozwinięte/zwinięte miesiące i pozycję przewijania przy przerysowaniu.
+  // Enter w polu kwoty zatwierdza (wywołuje change przez blur).
+  app.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.dataset.action === 'amount') e.target.blur();
+  });
+
+  // Zachowuje rozwinięte/zwinięte sekcje i pozycję przewijania przy przerysowaniu.
   function keepOpenAndRender() {
-    const open = [...app.querySelectorAll('details.month')].map(d => d.open);
+    const open = {};
+    app.querySelectorAll('details[data-key]').forEach(d => { open[d.dataset.key] = d.open; });
     const y = window.scrollY;
     render();
-    app.querySelectorAll('details.month').forEach((d, i) => { if (i in open) d.open = open[i]; });
+    app.querySelectorAll('details[data-key]').forEach(d => {
+      if (d.dataset.key in open) d.open = open[d.dataset.key];
+    });
     window.scrollTo(0, y);
   }
 
   async function exportData() {
-    const name = `banki-${new Date().toISOString().slice(0, 10)}.json`;
+    const name = `banki-${todayISO()}.json`;
     const file = new File([JSON.stringify(state, null, 2)], name, { type: 'application/json' });
     // Na telefonie arkusz udostępniania („Zachowaj w Plikach”) – zwykłe pobieranie
     // w aplikacji z ekranu początkowego na iOS bywa zawodne.
@@ -511,7 +930,7 @@
   });
 
   window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
-  // Odśwież po powrocie do aplikacji (np. gdy zmienił się miesiąc), bez gubienia przewinięcia.
+  // Odśwież po powrocie do aplikacji (np. gdy zmienił się dzień), bez gubienia przewinięcia.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) keepOpenAndRender(); });
   render();
 
